@@ -4,6 +4,7 @@ var {Todo} = require('./models/todo');
 const bodyParser = require('body-parser');
 const express = require('express');
 const ObjectID = require('mongodb').ObjectID;
+const _ = require('lodash');
 
 var port = process.env.PORT || 3000;
 
@@ -59,6 +60,66 @@ app.get('/todos/:id', (req, res)=>{
 		});
 
 });
+
+app.delete('/todos/:id', (req, res)=>{
+
+	if(!ObjectID.isValid(req.params.id)){
+		res.status(400).send({
+			error : "please enter a valid id"
+		});
+	}
+	Todo.findByIdAndRemove(req.params.id)
+		.then((todo)=>{
+			if(!todo){
+				res.status(400).send({
+					error : 'todo not found'
+				});
+			}
+			res.status(200).send({todo});
+		})
+		.catch((e)=>{
+			res.status(400).send({
+				error : "todo not found"
+			});
+		})
+
+});
+
+app.patch('/todos/:id', (req, res)=>{
+
+	if(!ObjectID.isValid(req.params.id)){
+		res.status(400).send({
+			error : "please enter a valid id"
+		});
+	}
+
+	var body = _.pick(req.body,['text','completed']);
+
+	if(body.completed == 'true'){
+		body.completedAt = new Date().getTime();
+	}else{
+		body.completed = false;
+		body.completedAt = null;
+	}
+
+
+	Todo.findByIdAndUpdate(req.params.id,{$set:body},{new:true})
+		.then((todo)=>{
+			if(!todo){
+				res.status(400).send({
+					error : 'todo not found'
+				});
+			}
+			res.status(200).send({todo});
+		})
+		.catch((e)=>{
+			res.status(400).send({
+				error : "todo not found"
+			});
+		})
+
+});
+
 
 app.listen(port,()=>{
 	console.log('app is running at port ',port);
